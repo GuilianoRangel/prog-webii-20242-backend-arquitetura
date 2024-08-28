@@ -30,7 +30,4 @@ public abstract class GenericCrudWithValidationsService<
         validations.forEach(v -> v.validate(data, ValidationAction.GENERAL));
     }
 
-    protected  void validateMandatoryFields(MODEL data) {
-        validations.forEach(v -> v.validate(data, ValidationAction.GENERAL_MANDATORY));
-    }
 }

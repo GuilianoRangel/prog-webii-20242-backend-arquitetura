@@ -1,8 +1,10 @@
 package br.ueg.progweb2.arquitetura.service.impl;
 
 import br.ueg.progweb2.arquitetura.exceptions.DataException;
+import br.ueg.progweb2.arquitetura.exceptions.MandatoryException;
 import br.ueg.progweb2.arquitetura.mapper.GenericUpdateMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
+import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
 import br.ueg.progweb2.arquitetura.service.CrudService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -103,5 +105,10 @@ public abstract class GenericCrudService<
 
     protected abstract void validateBusinessLogic(MODEL dado) ;
 
-    protected abstract void validateMandatoryFields(MODEL dado);
+    protected void validateMandatoryFields(MODEL dado) {
+        List<String> mandatoryFieldsNotFilled = ReflectionUtils.getMandatoryFieldsNotFilled(dado);
+        if (!mandatoryFieldsNotFilled.isEmpty()) {
+            throw new MandatoryException("Campos obrigatórios não preenchidos ("+mandatoryFieldsNotFilled+")");
+        }
+    }
 }
