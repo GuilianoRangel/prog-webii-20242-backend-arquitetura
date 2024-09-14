@@ -72,6 +72,7 @@ public class ApiSwaggerConfig {
 				Class<?> superClazz = handlerMethod.getBeanType().getSuperclass();
 				if (Objects.nonNull(superClazz) && (superClazz.isAssignableFrom(GenericCRUDController.class))) {
 					String beanName = handlerMethod.getBeanType().getSimpleName();
+					beanName = beanName.substring(0,1).toLowerCase() + beanName.substring(1);
 					operation.setOperationId(String.format("%s_%s", beanName, handlerMethod.getMethod().getName()));
 				}
 				return operation;
