@@ -1,7 +1,7 @@
 package br.ueg.progweb2.arquitetura.service.impl;
 
-import br.ueg.progweb2.arquitetura.exceptions.DataException;
-import br.ueg.progweb2.arquitetura.exceptions.MandatoryException;
+import br.ueg.progweb2.arquitetura.exceptions.ApiMessageCode;
+import br.ueg.progweb2.arquitetura.exceptions.BusinessException;
 import br.ueg.progweb2.arquitetura.mapper.GenericUpdateMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
 import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
@@ -85,8 +85,7 @@ public abstract class GenericCrudService<
         }
 
         if(Boolean.FALSE.equals(valid)){
-            //MODEL.class.getSimpleName()
-            throw new DataException("Objeto não existe");
+            throw new BusinessException(ApiMessageCode.ERROR_RECORD_NOT_FOUND);
         }
         return dadoBD;
     }
@@ -108,7 +107,7 @@ public abstract class GenericCrudService<
     protected void validateMandatoryFields(MODEL dado) {
         List<String> mandatoryFieldsNotFilled = ReflectionUtils.getMandatoryFieldsNotFilled(dado);
         if (!mandatoryFieldsNotFilled.isEmpty()) {
-            throw new MandatoryException("Campos obrigatórios não preenchidos ("+mandatoryFieldsNotFilled+")");
+            throw new BusinessException(ApiMessageCode.ERROR_MANDATORY_FIELDS, mandatoryFieldsNotFilled);
         }
     }
 }
