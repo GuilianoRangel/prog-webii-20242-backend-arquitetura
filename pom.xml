@@ -11,7 +11,7 @@
 	<packaging>jar</packaging>
 	<groupId>br.ueg.progweb2</groupId>
 	<artifactId>arquitetura-prog-web-ii</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>Arquitetura-Prog-WEB-II</name>
 	<description>Arquitetura base para desenvolvimento de aplicações web</description>
 	<properties>

@@ -1,5 +1,6 @@
 package br.ueg.progweb2.arquitetura.service.impl;
 
+import br.ueg.progweb2.exampleuse.ArqApplication;
 import br.ueg.progweb2.exampleuse.model.DomainModel;
 import br.ueg.progweb2.exampleuse.repository.DomainModelRespository;
 import br.ueg.progweb2.exampleuse.service.impl.DomainModelServiceImpl;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.*;
  * https://howtodoinjava.com/spring-boot/spring-boot-test-controller-service-dao/
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest
+@SpringBootTest(classes = ArqApplication.class)
 public class GenericCrudServiceTest {
 
     private static Faker faker;

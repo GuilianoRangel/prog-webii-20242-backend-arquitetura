@@ -15,19 +15,25 @@ public abstract class GenericCrudWithValidationsService<
         > extends GenericCrudService<MODEL, TYPE_PK, REPOSITORY> {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    @Autowired
+    @Autowired(required = false)
     private List<IValidations<MODEL>> validations;
 
     protected void validateBusinessLogicForInsert(MODEL data) {
-        validations.forEach(v -> v.validate(data, ValidationAction.CREATE));
+        if(validations != null && !validations.isEmpty()) {
+            validations.forEach(v -> v.validate(data, ValidationAction.CREATE));
+        }
     }
 
     protected  void validateBusinessLogicForUpdate(MODEL data) {
-        validations.forEach(v -> v.validate(data, ValidationAction.UPDATE));
+        if(validations != null && !validations.isEmpty()) {
+            validations.forEach(v -> v.validate(data, ValidationAction.UPDATE));
+        }
     }
 
     protected void validateBusinessLogic(MODEL data) {
-        validations.forEach(v -> v.validate(data, ValidationAction.GENERAL));
+        if(validations != null && !validations.isEmpty()) {
+            validations.forEach(v -> v.validate(data, ValidationAction.GENERAL));
+        }
     }
 
 }
