@@ -32,4 +32,7 @@ public class DomainModel implements GenericModel<Long> {
 
     @Column(name = "descricao",  nullable = false, length = 200)
     private String description;
+
+    @Column(name = "ativo")
+    private Boolean active;
 }

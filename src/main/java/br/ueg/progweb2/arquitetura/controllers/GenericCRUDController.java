@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public abstract class GenericCRUDController<
     @Autowired
     protected MAPPER mapper;
 
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName('CREATE'))")
     @PostMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE},
             consumes = {MediaType.APPLICATION_JSON_VALUE}
@@ -45,6 +47,9 @@ public abstract class GenericCRUDController<
             responses = {
                     @ApiResponse(responseCode = "200", description = "Entidade Incluida",
                             useReturnTypeSchema = true),
+                    @ApiResponse(responseCode = "403", description = "Acesso negado",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = MessageResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Erro de Negócio",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                                     schema = @Schema(implementation = MessageResponse.class)))
@@ -56,6 +61,7 @@ public abstract class GenericCRUDController<
     }
 
 
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName('UPDATE'))")
     @PutMapping(path = "/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE},
             consumes = {MediaType.APPLICATION_JSON_VALUE})
@@ -63,6 +69,9 @@ public abstract class GenericCRUDController<
             @ApiResponse(responseCode = "200", description = "Listagem geral",
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de Negócio",
@@ -79,12 +88,16 @@ public abstract class GenericCRUDController<
         return ResponseEntity.ok(mapper.toDTO(modelSaved));
     }
 
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName('READ_ALL'))")
     @GetMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "lista todos modelos", responses = {
             @ApiResponse(responseCode = "200", description = "Listagem geral",
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de Negócio",
@@ -98,12 +111,16 @@ public abstract class GenericCRUDController<
         );
     }
 
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName('READ'))")
     @GetMapping(path = "/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "Obter os dados completos de uma entidiade pelo id informado!", responses = {
             @ApiResponse(responseCode = "200", description = "Entidade encontrada",
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
@@ -114,12 +131,16 @@ public abstract class GenericCRUDController<
         return ResponseEntity.ok(dtoResult);
     }
 
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName('DELETE'))")
     @DeleteMapping(path ="/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "Método utilizado para remover uma entidiade pela id informado", responses = {
             @ApiResponse(responseCode = "200", description = "Entidade Removida",
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
@@ -130,4 +151,7 @@ public abstract class GenericCRUDController<
         return ResponseEntity.ok(dtoResult);
     }
 
+    public String getRoleName(String action){
+        return "ROLE_".concat(this.service.getEntityType().getSimpleName().toUpperCase().concat("_"+action.toUpperCase()));
+    }
 }

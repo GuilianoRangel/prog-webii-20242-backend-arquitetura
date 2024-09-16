@@ -11,7 +11,7 @@
 	<packaging>jar</packaging>
 	<groupId>br.ueg.progweb2</groupId>
 	<artifactId>arquitetura-prog-web-ii</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>Arquitetura-Prog-WEB-II</name>
 	<description>Arquitetura base para desenvolvimento de aplicações web</description>
 	<properties>
@@ -77,6 +77,18 @@
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<!--<scope>test</scope>-->
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- JWT -->
+		<dependency>
+			<groupId>com.auth0</groupId>
+			<artifactId>java-jwt</artifactId>
+			<version>3.8.1</version>
 		</dependency>
 	</dependencies>
 
