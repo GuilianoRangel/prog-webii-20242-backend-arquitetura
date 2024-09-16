@@ -7,6 +7,8 @@ import java.util.List;
 public interface CrudService<
         MODEL extends GenericModel<TYPE_PK>, TYPE_PK
         > {
+    Class<TYPE_PK> getEntityType();
+
     List<MODEL> listAll();
     MODEL create(MODEL dado);
     MODEL update(MODEL dado);

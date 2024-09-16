@@ -9,6 +9,7 @@ import br.ueg.progweb2.arquitetura.service.CrudService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +29,9 @@ public abstract class GenericCrudService<
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     protected REPOSITORY repository;
+
+    private Class<TYPE_PK> entityClass;
+
     public List<MODEL> listAll(){
         return repository.findAll();
     }
@@ -109,5 +113,13 @@ public abstract class GenericCrudService<
         if (!mandatoryFieldsNotFilled.isEmpty()) {
             throw new BusinessException(ApiMessageCode.ERROR_MANDATORY_FIELDS, mandatoryFieldsNotFilled);
         }
+    }
+
+    public Class<TYPE_PK> getEntityType() {
+        if(Objects.isNull(this.entityClass)){
+            this.entityClass = (Class<TYPE_PK>) ((ParameterizedType) this.getClass()
+                    .getGenericSuperclass()).getActualTypeArguments()[0];
+        }
+        return this.entityClass;
     }
 }
