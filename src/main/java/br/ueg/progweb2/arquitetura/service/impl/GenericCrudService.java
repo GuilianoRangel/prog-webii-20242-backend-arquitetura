@@ -2,11 +2,14 @@ package br.ueg.progweb2.arquitetura.service.impl;
 
 import br.ueg.progweb2.arquitetura.exceptions.ApiMessageCode;
 import br.ueg.progweb2.arquitetura.exceptions.BusinessException;
+import br.ueg.progweb2.arquitetura.exceptions.FieldResponse;
 import br.ueg.progweb2.arquitetura.mapper.GenericUpdateMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
 import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
 import br.ueg.progweb2.arquitetura.service.CrudService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.lang.reflect.ParameterizedType;
@@ -35,6 +38,9 @@ public abstract class GenericCrudService<
     public List<MODEL> listAll(){
         return repository.findAll();
     }
+
+    @Autowired
+    private MessageSource messageSource;
 
     @Override
     public MODEL create(MODEL dado) {
@@ -111,11 +117,21 @@ public abstract class GenericCrudService<
     protected void validateMandatoryFields(MODEL dado) {
         List<String> mandatoryFieldsNotFilled = ReflectionUtils.getMandatoryFieldsNotFilled(dado);
         if (!mandatoryFieldsNotFilled.isEmpty()) {
-            throw new BusinessException(ApiMessageCode.ERROR_MANDATORY_FIELDS, mandatoryFieldsNotFilled);
+            List<FieldResponse> fieldResponseErros = mandatoryFieldsNotFilled.stream().map(
+                    s -> {
+                        String messageI18n = messageSource.getMessage(
+                                ApiMessageCode.ARQ_MANDATORY_FIELD.toString(),
+                                s.lines().toArray(),
+                                LocaleContextHolder.getLocale()
+                        );
+                        return new FieldResponse(s, messageI18n);
+                    }).toList();
+            throw new BusinessException(ApiMessageCode.ERROR_MANDATORY_FIELDS, fieldResponseErros);
         }
     }
 
     public Class<TYPE_PK> getEntityType() {
+        //TODO MELHORIA - verificar a posição do modelo dinamicamente verificando o tipo entidade
         if(Objects.isNull(this.entityClass)){
             this.entityClass = (Class<TYPE_PK>) ((ParameterizedType) this.getClass()
                     .getGenericSuperclass()).getActualTypeArguments()[0];

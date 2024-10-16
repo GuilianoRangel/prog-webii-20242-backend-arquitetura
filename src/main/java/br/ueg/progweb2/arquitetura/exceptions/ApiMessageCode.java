@@ -16,7 +16,9 @@ public enum ApiMessageCode implements MessageCode {
     ERROR_USER_PASSWORD_NOT_MATCH("ME007", 400),
     ERROR_INACTIVE_USER("ME008",400),
 
-    MSG_OPERATION_SUCESS("MSG-000", 200)
+    MSG_OPERATION_SUCESS("MSG-000", 200),
+
+    ARQ_MANDATORY_FIELD("MEA01", 0),
     ;
     private final String code;
 

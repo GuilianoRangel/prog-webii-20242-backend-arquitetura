@@ -75,4 +75,9 @@ public class FieldResponse implements Serializable {
 		this.description = description;
 	}
 
+	@Override
+	public String toString() {
+		return attribute + " - " + description + ".";
+	}
+
 }
