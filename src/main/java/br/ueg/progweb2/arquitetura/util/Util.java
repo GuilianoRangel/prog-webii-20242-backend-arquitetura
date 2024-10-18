@@ -7,6 +7,8 @@ package br.ueg.progweb2.arquitetura.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -100,5 +102,23 @@ public final class Util {
 			throw new RuntimeException(e);
 		}
 		return json;
+	}
+
+
+	/**
+	 * Verifica se o e-mail informado é válido.
+	 *
+	 * @param mail
+	 * @return
+	 */
+	public static boolean isValidEmail(final String mail) {
+		boolean valid = Boolean.TRUE;
+
+		try {
+			new InternetAddress(mail).validate();
+		} catch (AddressException e) {
+			valid = Boolean.FALSE;
+		}
+		return valid;
 	}
 }

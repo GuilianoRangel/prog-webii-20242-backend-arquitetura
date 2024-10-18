@@ -4,6 +4,7 @@ import br.ueg.progweb2.arquitetura.model.GenericModel;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -27,7 +28,9 @@ public class ReflectionUtils {
         while(clazz != null && !clazz.equals(GenericModel.class)){
             Field[] modelFields = clazz.getDeclaredFields();
             for(Field field : modelFields){
-                boolean isModelField = field.isAnnotationPresent(Column.class) || field.isAnnotationPresent(JoinColumn.class);
+                boolean isModelField = field.isAnnotationPresent(Column.class)
+                        || field.isAnnotationPresent(JoinColumn.class)
+                        || field.isAnnotationPresent(OneToMany.class);
                 if(isModelField){
                     resultFields.add(field);
                 }
@@ -102,6 +105,44 @@ public class ReflectionUtils {
             }
         }
         return mandatoryFieldNames;
+    }
+
+    public static Field getEntityField(GenericModel<?> entidade, String fieldName) throws NoSuchFieldException {
+        Field fieldResult = null;
+        for (Field entidadeField : getEntityFields(entidade)) {
+            if(entidadeField.getName().equals(fieldName)){
+                fieldResult = entidadeField;
+                break;
+            }
+        }
+        if (fieldResult == null) {
+            throw new NoSuchFieldException(fieldName);
+        }
+        return fieldResult;
+    }
+
+
+
+    public static Object getFieldValue(GenericModel<?> entidade, String fieldName) {
+        try {
+            Class<? extends GenericModel> entidadeClass = entidade.getClass();
+            Field field = getEntityField(entidade, fieldName);
+            String methodGetFieldName = "get"+StringUtils.uCFirst(field.getName());
+            return entidadeClass.getMethod(methodGetFieldName).invoke(entidade);
+        } catch (NoSuchFieldException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public static void setFieldValue(GenericModel<?> entidade, String fieldName, Object value)  {
+        try {
+            Class<? extends GenericModel> entidadeClass = entidade.getClass();
+            Field field = getEntityField(entidade, fieldName);
+            String methodGetFieldName = "set"+StringUtils.uCFirst(field.getName());
+            entidadeClass.getMethod(methodGetFieldName, field.getType()).invoke(entidade, value);
+        } catch (NoSuchFieldException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
 }

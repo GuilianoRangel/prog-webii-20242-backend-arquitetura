@@ -5,6 +5,7 @@ import br.ueg.progweb2.arquitetura.mapper.GenericMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
 import br.ueg.progweb2.arquitetura.service.CrudService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -28,7 +29,7 @@ public abstract class GenericCRUDController<
                 MODEL,
                 TYPE_PK>,
         MAPPER extends GenericMapper<DTO,DTOCreate, DTOUpdate, DTOList , MODEL, TYPE_PK>
-        > {
+        > extends AbstractController {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -122,9 +123,13 @@ public abstract class GenericCRUDController<
                             schema = @Schema(implementation = MessageResponse.class))),
             @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de Negócio",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
     public ResponseEntity<DTO> getById(
+            @Parameter(description = "Id da entidade")
             @PathVariable("id") TYPE_PK id
     ) {
         DTO dtoResult = mapper.toDTO(service.getById(id));
