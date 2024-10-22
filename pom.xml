@@ -11,7 +11,7 @@
 	<packaging>jar</packaging>
 	<groupId>br.ueg.progweb2</groupId>
 	<artifactId>arquitetura-prog-web-ii</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.4-SNAPSHOT</version>
 	<name>Arquitetura-Prog-WEB-II</name>
 	<description>Arquitetura base para desenvolvimento de aplicações web</description>
 	<properties>
@@ -71,6 +71,13 @@
 			<groupId>com.github.javafaker</groupId>
 			<artifactId>javafaker</artifactId>
 			<version>1.0.2</version>
+		</dependency>
+
+		<!-- Mail -->
+		<dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+			<version>1.6.2</version>
 		</dependency>
 
 		<dependency>

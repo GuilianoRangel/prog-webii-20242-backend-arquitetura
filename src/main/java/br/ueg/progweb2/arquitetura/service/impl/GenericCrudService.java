@@ -12,7 +12,9 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,6 +47,7 @@ public abstract class GenericCrudService<
     @Override
     public MODEL create(MODEL dado) {
         prepareToCreate(dado);
+        setListReferences(dado);
         validateMandatoryFields(dado);
         validateBusinessLogic(dado);
         validateBusinessLogicForInsert(dado);
@@ -58,6 +61,7 @@ public abstract class GenericCrudService<
     @Override
     public MODEL update(MODEL dataToUpdate){
         var dataDB = validateIdModelExists(dataToUpdate.getId());
+        setListReferences(dataToUpdate);
         validateMandatoryFields(dataToUpdate);
         validateBusinessLogic(dataToUpdate);
         validateBusinessLogicForUpdate(dataToUpdate);
@@ -137,5 +141,33 @@ public abstract class GenericCrudService<
                     .getGenericSuperclass()).getActualTypeArguments()[0];
         }
         return this.entityClass;
+    }
+
+
+
+    private void setListReferences(MODEL modelo) {
+        for (Field entidadeField : ReflectionUtils.getEntityFields(modelo)) {
+            if(
+                    Collection.class.isAssignableFrom(entidadeField.getType())
+            ){
+                ParameterizedType listType = (ParameterizedType) entidadeField.getGenericType();
+                Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+                if(GenericModel.class.isAssignableFrom(listClass)) {
+                    var list = (Collection<GenericModel<?>>) ReflectionUtils.getFieldValue(modelo, entidadeField.getName());
+                    if(Objects.isNull(list)) { continue; }
+                    System.out.println(listClass.getSimpleName());
+                    for (GenericModel<?> iEntidade : list) {
+                        var entidadeFields = ReflectionUtils.getEntityFields(iEntidade);
+                        for (Field fieldAux : entidadeFields) {
+                            if(fieldAux.getType().isAssignableFrom(modelo.getClass())){
+                                ReflectionUtils.setFieldValue(iEntidade, fieldAux.getName(), modelo);
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
     }
 }

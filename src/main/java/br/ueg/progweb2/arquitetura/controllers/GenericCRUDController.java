@@ -1,10 +1,14 @@
 package br.ueg.progweb2.arquitetura.controllers;
 
+import br.ueg.progweb2.arquitetura.controllers.enums.CrudSecurityRole;
+import br.ueg.progweb2.arquitetura.controllers.enums.ISecurityRole;
 import br.ueg.progweb2.arquitetura.exceptions.MessageResponse;
 import br.ueg.progweb2.arquitetura.mapper.GenericMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
+import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
 import br.ueg.progweb2.arquitetura.service.CrudService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +33,12 @@ public abstract class GenericCRUDController<
                 MODEL,
                 TYPE_PK>,
         MAPPER extends GenericMapper<DTO,DTOCreate, DTOUpdate, DTOList , MODEL, TYPE_PK>
-        > {
+        > extends AbstractController implements SecuritedController {
+    public static final ISecurityRole ROLE_CREATE   = CrudSecurityRole.CREATE;
+    public static final ISecurityRole ROLE_READ     = CrudSecurityRole.READ;
+    public static final ISecurityRole ROLE_UPDATE   = CrudSecurityRole.UPDATE;
+    public static final ISecurityRole ROLE_DELETE   = CrudSecurityRole.DELETE;
+    public static final ISecurityRole ROLE_READ_ALL = CrudSecurityRole.READ_ALL;
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -38,7 +48,7 @@ public abstract class GenericCRUDController<
     @Autowired
     protected MAPPER mapper;
 
-    @PreAuthorize(value = "hasRole(#root.this.getRoleName('CREATE'))")
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_CREATE))")
     @PostMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE},
             consumes = {MediaType.APPLICATION_JSON_VALUE}
@@ -61,7 +71,7 @@ public abstract class GenericCRUDController<
     }
 
 
-    @PreAuthorize(value = "hasRole(#root.this.getRoleName('UPDATE'))")
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_UPDATE))")
     @PutMapping(path = "/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE},
             consumes = {MediaType.APPLICATION_JSON_VALUE})
@@ -88,7 +98,7 @@ public abstract class GenericCRUDController<
         return ResponseEntity.ok(mapper.toDTO(modelSaved));
     }
 
-    @PreAuthorize(value = "hasRole(#root.this.getRoleName('READ_ALL'))")
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_READ_ALL))")
     @GetMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "lista todos modelos", responses = {
@@ -111,7 +121,7 @@ public abstract class GenericCRUDController<
         );
     }
 
-    @PreAuthorize(value = "hasRole(#root.this.getRoleName('READ'))")
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_READ))")
     @GetMapping(path = "/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "Obter os dados completos de uma entidiade pelo id informado!", responses = {
@@ -122,16 +132,20 @@ public abstract class GenericCRUDController<
                             schema = @Schema(implementation = MessageResponse.class))),
             @ApiResponse(responseCode = "403", description = "Acesso negado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de Negócio",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
     public ResponseEntity<DTO> getById(
+            @Parameter(description = "Id da entidade")
             @PathVariable("id") TYPE_PK id
     ) {
         DTO dtoResult = mapper.toDTO(service.getById(id));
         return ResponseEntity.ok(dtoResult);
     }
 
-    @PreAuthorize(value = "hasRole(#root.this.getRoleName('DELETE'))")
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_DELETE))")
     @DeleteMapping(path ="/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(description = "Método utilizado para remover uma entidiade pela id informado", responses = {
@@ -151,7 +165,45 @@ public abstract class GenericCRUDController<
         return ResponseEntity.ok(dtoResult);
     }
 
-    public String getRoleName(String action){
-        return "ROLE_".concat(this.service.getEntityType().getSimpleName().toUpperCase().concat("_"+action.toUpperCase()));
+    @Override
+    public String getRoleName(ISecurityRole role){
+        return "ROLE_".concat(getEntityTypeSimpleName().toUpperCase().concat("_"+role.getName().toUpperCase()));
+    }
+
+    @Override
+    public String getEntityTypeSimpleName() {
+        return this.service.getEntityType().getSimpleName();
+    }
+
+    /**
+     * Nome do modulo de Segurança, obtido a partir do nome da classe de serviço sem o Sufixo Service
+     * @return - nome do modulo de segurança, utilizado para inicializar o cadastro do modulo de segurança
+     */
+    @Override
+    public String getSecurityModuleName(){
+        String simpleName = ClassUtils.getUserClass(this.service.getClass()).getSimpleName();
+        simpleName = simpleName.replaceAll("Service","").replaceAll("Impl","");;
+        return simpleName;
+    };
+
+    /**
+     * Rotulo do modulo de Segurança, obtido a partir do nome da classe de serviço sem o Sufixo Service
+     * @return - Rotulo do modulo de segurança, utilizado para inicializar o cadastro do modulo de segurança
+     */
+    @Override
+    public String getSecurityModuleLabel(){
+        String simpleName = ClassUtils.getUserClass(this.service.getClass()).getSimpleName();
+        simpleName = simpleName.replaceAll("Service","").replaceAll("Impl","");
+        return simpleName;
+    };
+
+
+    /**
+     * retorna as roles sem a palavra ROLE, para alimentar o banco de autorização
+     * @return
+     */
+    @Override
+    public List<ISecurityRole> getSecurityModuleFeatures(){
+        return ReflectionUtils.getRoleConstantFromController(this);
     }
 }

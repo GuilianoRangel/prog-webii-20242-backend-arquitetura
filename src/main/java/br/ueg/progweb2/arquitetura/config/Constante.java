@@ -22,6 +22,9 @@ public final class Constante {
 	public static final String PARAM_REFRESH_EXPIRES_IN = "refreshExpiresIn";
 	public static final String PARAM_RESET_PASSWORD_TYPE = "passwordResetType";
 
+	public static final Long PARAM_TIME_TOKEN_VALIDATION = 86400L;
+	public static final String PARAM_LINK = "link";
+
 	/** Authorization */
 	public static final String HEADER_AUTHORIZATION = "Authorization";
 	public static final String HEADER_AUTHORIZATION_BEARER = "Bearer ";
