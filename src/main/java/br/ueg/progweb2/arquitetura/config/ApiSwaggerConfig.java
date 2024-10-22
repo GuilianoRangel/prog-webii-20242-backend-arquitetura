@@ -81,7 +81,7 @@ public class ApiSwaggerConfig {
 			@Override
 			public Operation customize(Operation operation, HandlerMethod handlerMethod) {
 				Class<?> superClazz = handlerMethod.getBeanType().getSuperclass();
-				if (Objects.nonNull(superClazz) && (superClazz.isAssignableFrom(GenericCRUDController.class))) {
+				if (Objects.nonNull(superClazz) && (GenericCRUDController.class.isAssignableFrom(superClazz))) {
 					String beanName = handlerMethod.getBeanType().getSimpleName();
 					beanName = beanName.substring(0,1).toLowerCase() + beanName.substring(1);
 					operation.setOperationId(String.format("%s_%s", beanName, handlerMethod.getMethod().getName()));

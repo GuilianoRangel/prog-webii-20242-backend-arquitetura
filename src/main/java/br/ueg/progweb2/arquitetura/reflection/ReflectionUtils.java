@@ -198,4 +198,20 @@ public class ReflectionUtils {
         return resultFields;
     }
 
+
+    public static boolean implementsInterface(Class<?> clazz, Class<?> interfaceClass) {
+        // Verifica se a classe atual ou qualquer de suas superclasses implementa a interface
+        while (clazz != null) {
+            Class<?>[] interfaces = clazz.getInterfaces();
+            for (Class<?> iface : interfaces) {
+                if (iface.equals(interfaceClass)) {
+                    return true;
+                }
+            }
+            // Move para a superclasse
+            clazz = clazz.getSuperclass();
+        }
+        return false;
+    }
+
 }
