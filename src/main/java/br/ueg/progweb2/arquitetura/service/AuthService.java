@@ -75,11 +75,12 @@ public class AuthService {
         validateMandatoryFieldsOnLoginAccess(authDTO);
 
         CredencialDTO userCredential = userProviderService.getCredentialByLogin(authDTO.getLogin());
-        validateLoginUser(userCredential);
 
         if (!loginByPassword(userCredential, authDTO)) {
             throw new BusinessException(ApiMessageCode.ERROR_USER_PASSWORD_NOT_MATCH);
         }
+
+        validateLoginUser(userCredential);
 
         credencialDTO = userCredential;
 

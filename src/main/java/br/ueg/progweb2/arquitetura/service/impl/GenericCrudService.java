@@ -85,7 +85,7 @@ public abstract class GenericCrudService<
         return modelToRemove;
     }
 
-    private MODEL validateIdModelExists(TYPE_PK id){
+    protected MODEL validateIdModelExists(TYPE_PK id){
         boolean valid = true;
         MODEL dadoBD = null;
 
