@@ -10,6 +10,8 @@ import br.ueg.progweb2.arquitetura.service.CrudService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.lang.reflect.Field;
@@ -39,6 +41,10 @@ public abstract class GenericCrudService<
 
     public List<MODEL> listAll(){
         return repository.findAll();
+    }
+
+    public Page<MODEL> listAllPage(Pageable page) {
+        return repository.findAll(page);
     }
 
     @Autowired

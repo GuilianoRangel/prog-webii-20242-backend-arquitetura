@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -121,6 +124,29 @@ public abstract class GenericCRUDController<
         );
     }
 
+
+    @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_READ_ALL))")
+    @GetMapping(
+            path = "/page",
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(description = "lista todos modelos paginada", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem geral paginada",
+                    useReturnTypeSchema = true),
+            @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de Negócio",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<Page<DTOList>> listAllPage(@PageableDefault(page = 0, size = 5) Pageable page){
+        Page<MODEL> pageEntidade = service.listAllPage(page);
+        return ResponseEntity.ok(mapPageEntityToDto(pageEntidade));
+    }
+
     @PreAuthorize(value = "hasRole(#root.this.getRoleName(#root.this.ROLE_READ))")
     @GetMapping(path = "/{id}",
             produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -205,5 +231,10 @@ public abstract class GenericCRUDController<
     @Override
     public List<ISecurityRole> getSecurityModuleFeatures(){
         return ReflectionUtils.getRoleConstantFromController(this);
+    }
+
+    public Page<DTOList> mapPageEntityToDto(Page<MODEL> page){
+        Page<DTOList> dtoPage = page.map(entity -> mapper.toDTOList(entity));
+        return dtoPage;
     }
 }
