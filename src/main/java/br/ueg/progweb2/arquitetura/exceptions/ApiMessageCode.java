@@ -19,6 +19,10 @@ public enum ApiMessageCode implements MessageCode {
     MSG_OPERATION_SUCESS("MSG-000", 200),
 
     ARQ_MANDATORY_FIELD("MEA01", 0),
+
+    ERROR_SEARCH_PARAMETERS_NOT_DEFINED("ME009", 400),
+
+    SEARCH_FIELDS_RESULT_NONE("ME010", 404)
     ;
     private final String code;
 

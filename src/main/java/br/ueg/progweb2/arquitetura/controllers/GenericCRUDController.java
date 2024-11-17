@@ -2,19 +2,26 @@ package br.ueg.progweb2.arquitetura.controllers;
 
 import br.ueg.progweb2.arquitetura.controllers.enums.CrudSecurityRole;
 import br.ueg.progweb2.arquitetura.controllers.enums.ISecurityRole;
+import br.ueg.progweb2.arquitetura.exceptions.ApiMessageCode;
+import br.ueg.progweb2.arquitetura.exceptions.BusinessException;
 import br.ueg.progweb2.arquitetura.exceptions.MessageResponse;
 import br.ueg.progweb2.arquitetura.mapper.GenericMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
+import br.ueg.progweb2.arquitetura.model.dtos.SearchField;
+import br.ueg.progweb2.arquitetura.model.dtos.SearchFieldValue;
 import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
 import br.ueg.progweb2.arquitetura.service.CrudService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +29,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public abstract class GenericCRUDController<
@@ -236,5 +245,79 @@ public abstract class GenericCRUDController<
     public Page<DTOList> mapPageEntityToDto(Page<MODEL> page){
         Page<DTOList> dtoPage = page.map(entity -> mapper.toDTOList(entity));
         return dtoPage;
+    }
+
+    @GetMapping(path = "/search-fields",
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(description = "Listagem dos campos de busca", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem geral",
+                    useReturnTypeSchema = true),
+            @ApiResponse(responseCode = "400", description = "Modelo não parametrizado para pesquisa",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<List<SearchField>> searchFieldsList(){
+        List<SearchField> listSearchFields = service.listSearchFields();
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.ERROR_SEARCH_PARAMETERS_NOT_DEFINED);
+        }
+        return ResponseEntity.ok(listSearchFields);
+    }
+
+    @PostMapping(path = "/search-fields",
+            produces = {MediaType.APPLICATION_JSON_VALUE},
+            consumes = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(description = "Realiza a busca pelos valores dos campos informados", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem do resultado",
+                    useReturnTypeSchema = true),
+            @ApiResponse(responseCode = "400", description = "falha ao realizar a busca",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<List<DTOList>> searchFieldsAction(@RequestBody List<SearchFieldValue> searchFieldValues){
+        List<MODEL> listSearchFields = service.searchFieldValues(searchFieldValues);
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.SEARCH_FIELDS_RESULT_NONE);
+        }
+        return ResponseEntity.ok(mapper.fromModelToDTOList(listSearchFields));
+    }
+
+    @PostMapping(path = "/search-fields/page",
+            produces = {MediaType.APPLICATION_JSON_VALUE},
+            consumes = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(description = "Realiza a busca pelos valores dos campos informados", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem do resultado",
+                    useReturnTypeSchema = true),
+            @ApiResponse(responseCode = "400", description = "falha ao realizar a busca",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<Page<DTOList>> searchFieldsActionPage(
+            @RequestBody List<SearchFieldValue> searchFieldValues,
+            @RequestParam(name = "page", defaultValue = "0", required = false)  Integer page,
+            @RequestParam(name = "size", defaultValue = "5", required = false)  Integer size,
+            @RequestParam(name = "sort", defaultValue = "", required = false)  List<String> sort
+    ){
+        Sort sortObject = Sort.unsorted();
+        if(Objects.nonNull(sort)){
+            List<Sort.Order> orderList = new ArrayList<>();
+            sort.forEach(s -> orderList.add(Sort.Order.asc(s)));
+            sortObject = Sort.by(orderList);
+        }
+        Pageable pageable = PageRequest.of(page, size, sortObject);
+        Page<MODEL> listSearchFields = service.searchFieldValuesPage(pageable, searchFieldValues);
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.SEARCH_FIELDS_RESULT_NONE);
+        }
+        return ResponseEntity.ok(this.mapPageEntityToDto(listSearchFields));
     }
 }

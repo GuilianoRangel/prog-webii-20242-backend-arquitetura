@@ -8,6 +8,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -26,8 +28,19 @@ public class ReflectionUtils {
      * @return Lista de fields ou uma lista vazia se não tiver fields;
      */
     public static List<Field> getEntityFields(GenericModel<?> model){
-        List<Field> resultFields = new ArrayList<Field>();
+
         Class<?> clazz = model.getClass();
+        return getEntityFields(clazz);
+    }
+
+    /**
+     * Método para retornar a lista de atributos de uma classe filha de GenericModel
+     * com os metadados dos atributos do modelo
+     * @param clazz - Classe do modelo que espero obter a lista de fields
+     * @return Lista de fields ou uma lista vazia se não tiver fields;
+     */
+    public static List<Field> getEntityFields(Class<?> clazz) {
+        List<Field> resultFields = new ArrayList<Field>();
         //TODO ver questão para parar antes de Object
         while(clazz != null && !clazz.equals(GenericModel.class)){
             Field[] modelFields = clazz.getDeclaredFields();
@@ -123,8 +136,13 @@ public class ReflectionUtils {
     }
 
     public static Field getEntityField(GenericModel<?> entidade, String fieldName) throws NoSuchFieldException {
+        Class<?> modelClass = entidade.getClass();
+        return getEntityField(modelClass, fieldName);
+    }
+
+    public static Field getEntityField(Class<?> modelClass, String fieldName) throws NoSuchFieldException {
         Field fieldResult = null;
-        for (Field entidadeField : getEntityFields(entidade)) {
+        for (Field entidadeField : getEntityFields(modelClass)) {
             if(entidadeField.getName().equals(fieldName)){
                 fieldResult = entidadeField;
                 break;
@@ -212,6 +230,18 @@ public class ReflectionUtils {
             clazz = clazz.getSuperclass();
         }
         return false;
+    }
+
+    public static JpaRepository getEntityRepository(ApplicationContext context, GenericModel<?> objModel) {
+        return getEntityRepository(context, objModel.getClass());
+    }
+
+    public static JpaRepository getEntityRepository(ApplicationContext context, Class<?> clsModel) {
+        String entityName = clsModel.getSimpleName();
+        entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
+        String repositoryName = entityName.concat("Repository");
+        JpaRepository entityRepository = (JpaRepository) context.getBean(repositoryName);
+        return entityRepository;
     }
 
 }

@@ -2,24 +2,36 @@ package br.ueg.progweb2.arquitetura.service.impl;
 
 import br.ueg.progweb2.arquitetura.exceptions.ApiMessageCode;
 import br.ueg.progweb2.arquitetura.exceptions.BusinessException;
+import br.ueg.progweb2.arquitetura.exceptions.DevelopmentException;
 import br.ueg.progweb2.arquitetura.exceptions.FieldResponse;
+import br.ueg.progweb2.arquitetura.interfaces.IConverter;
 import br.ueg.progweb2.arquitetura.mapper.GenericUpdateMapper;
 import br.ueg.progweb2.arquitetura.model.GenericModel;
+import br.ueg.progweb2.arquitetura.model.dtos.SearchField;
+import br.ueg.progweb2.arquitetura.model.dtos.SearchFieldValue;
 import br.ueg.progweb2.arquitetura.reflection.ReflectionUtils;
+import br.ueg.progweb2.arquitetura.reflection.SearchReflection;
+import br.ueg.progweb2.arquitetura.repository.model.ISearchTypePredicate;
 import br.ueg.progweb2.arquitetura.service.CrudService;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public abstract class GenericCrudService<
             MODEL extends GenericModel<TYPE_PK>,
@@ -29,6 +41,12 @@ public abstract class GenericCrudService<
             MODEL,
             TYPE_PK
         >{
+
+    private static final Logger log = LoggerFactory.getLogger(GenericCrudService.class);
+
+    @Autowired
+    private ApplicationContext context;
+
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     private GenericUpdateMapper<MODEL, TYPE_PK> mapper;
@@ -175,5 +193,131 @@ public abstract class GenericCrudService<
             }
         }
 
+    }
+
+
+
+    @Override
+    public List<SearchField> listSearchFields() {
+        return SearchReflection.getSearchFieldList(this.context, this.getEntityType());
+    }
+
+    public class SearchEntity implements Specification<MODEL> {
+        private final List<SearchFieldValue> searchFieldValues;
+        private final Class<?> entityClass;
+
+        public SearchEntity(Class<?> entityClass, List<SearchFieldValue> searchFieldValues) {
+            this.searchFieldValues = searchFieldValues;
+            this.entityClass = entityClass;
+        }
+
+        @Override
+        public Predicate toPredicate(Root<MODEL> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+            //TODO tratar como objeto e não como strinig;
+            //String strToSearch = searchFieldValue.getValue().toString().toLowerCase();
+            List<Predicate> listPredicate = new ArrayList<>();
+            for (SearchFieldValue fieldValue : searchFieldValues) {
+                listPredicate.add(getPredicate(root, cb, fieldValue));
+            }
+            Predicate firstPredicate = listPredicate.get(0);
+
+            for (int i = 1; i < listPredicate.size(); i++) {
+                firstPredicate = cb.and(firstPredicate, listPredicate.get(i));
+            }
+
+
+            return firstPredicate;
+        }
+
+        private Predicate getPredicate(Root<MODEL> root, CriteriaBuilder cb, SearchFieldValue valueSearch) {
+            Object value = getValue(valueSearch);
+            valueSearch.setObjectValue(value);
+
+            validSearchFieldName(valueSearch);
+            ISearchTypePredicate searchTypePredicate =  valueSearch.getSearchType().getPredicateExecute();
+
+            if(Objects.nonNull(searchTypePredicate)){
+                return searchTypePredicate.execute(root, cb, valueSearch);
+            }else{
+                throw new DevelopmentException("tipo Busca:" + valueSearch.getSearchType() + " não implementado !");
+            }
+            /*//TODO Verificar busca case insensitive
+            switch (valueSearch.getSearchType()) {
+                case EQUAL -> {
+                    return cb.equal(root.get(valueSearch.getName()), valueSearch.getObjectValue());
+                    //return cb.equal(departmentJoin(root).<String>get(searchCriteria.getFilterKey()), searchCriteria.getValue());
+                }
+                case BEGINS_WITH -> {
+                    return cb.like(cb.lower(root.get(valueSearch.getName())), valueSearch.getObjectValue().toString().toLowerCase() + "%");
+                }
+                default -> {
+                    throw new DevelopmentException("tipo Busca:" + valueSearch.getSearchType() + " não existe !");
+                }
+            }*/
+        }
+
+        private Field validSearchFieldName(SearchFieldValue valueSearch) {
+            Field entidadeField;
+            String fieldName = valueSearch.getName();
+            if(fieldName.contains(".")){
+                fieldName = fieldName.split("\\.")[0];
+            }
+            try {
+                entidadeField = ReflectionUtils.getEntityField(entityClass, fieldName);
+            } catch (NoSuchFieldException e) {
+                throw new DevelopmentException("Campo informado para busca:" + fieldName + " não existe na entidade: " + this.entityClass.getName());
+            }
+            return entidadeField;
+        }
+    }
+
+    public List<MODEL> searchFieldValues(List<SearchFieldValue> searchFieldValues){
+        try{
+            Class<?> entityClass = this.getEntityType();
+
+
+            JpaRepository entityRepository = ReflectionUtils.getEntityRepository(this.context, this.getEntityType());
+            if(entityRepository instanceof JpaSpecificationExecutor){
+                JpaSpecificationExecutor<MODEL> jpaSpecificationExecutor = (JpaSpecificationExecutor<MODEL>) entityRepository;
+                List<MODEL> all = jpaSpecificationExecutor.findAll(new SearchEntity(entityClass, searchFieldValues));
+                return all;
+            }else{
+                throw new DevelopmentException("Repository not implement JpaSpecificationExecutor:"+ entityRepository.getClass().getName());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+    public Page<MODEL> searchFieldValuesPage(Pageable page, List<SearchFieldValue> searchFieldValues){
+        try{
+            Class<?> entityClass = this.getEntityType();
+
+            JpaRepository entityRepository = ReflectionUtils.getEntityRepository(this.context, this.getEntityType());
+            if(entityRepository instanceof  JpaSpecificationExecutor){
+                JpaSpecificationExecutor<MODEL> jpaSpecificationExecutor = (JpaSpecificationExecutor<MODEL>) entityRepository;
+                Page<MODEL> all = jpaSpecificationExecutor.findAll(new SearchEntity(entityClass, searchFieldValues),page);
+                return all;
+            }else{
+                throw new DevelopmentException("Repository not implement JpaSpecificationExecutor:"+ entityRepository.getClass().getName());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        //TODO ver como retornar um pageable vazio
+        return null;
+    }
+    private Object getValue(SearchFieldValue valueSearch) {
+        Object value;
+        String converterClass = valueSearch.getType().concat("Converter");
+        converterClass = converterClass.substring(0,1).toLowerCase().concat(converterClass.substring(1));
+        try {
+            IConverter converter = (IConverter) this.context.getBean(converterClass);
+            value = converter.converter(valueSearch.getValue());
+        }catch (Exception e){
+            log.info("Erro ao Converter, ou Converter Não encontrado: "+converterClass);
+            value = valueSearch.getValue();
+        }
+        return value;
     }
 }
